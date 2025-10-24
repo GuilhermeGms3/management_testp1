@@ -1,9 +1,11 @@
 import 'dotenv/config';
-import makeWASocket, {
+import {
+  makeWASocket,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  useMultiFileAuthState,
-} from '@whiskeysockets/baileys';
+  useMultiFileAuthState
+} from "@whiskeysockets/baileys";
+import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import axios from 'axios';
 
@@ -31,13 +33,18 @@ async function start() {
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: true,          // mostra o QR no terminal
     logger: pino({ level: 'silent' }),// silencioso
   });
+  
+   
+   sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update;
 
-  sock.ev.on('creds.update', saveCreds);
+    if (qr) {
+      qrcode.generate(qr, { small: true });
+      console.log('📲 Escaneie o QR acima com seu WhatsApp');
+    }
 
-  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
     if (connection === 'close') {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
@@ -49,6 +56,10 @@ async function start() {
     }
   });
 
+  // Salva credenciais ao atualizar
+  sock.ev.on('creds.update', saveCreds);
+
+  // Quando chegar uma nova mensagem
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     const msg = messages[0];
@@ -58,6 +69,8 @@ async function start() {
     const text = textFromMessage(msg).trim();
 
     const st = sessions.get(jid) || { step: 'menu', data: {} };
+
+    
 
     // MENU INICIAL
     if (st.step === 'menu') {
