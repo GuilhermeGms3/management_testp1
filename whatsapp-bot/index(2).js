@@ -70,7 +70,7 @@ async function start() {
 
     const st = sessions.get(jid) || { step: 'menu', data: {} };
 
-    
+  
 
     // MENU INICIAL
     if (st.step === 'menu') {
@@ -114,37 +114,66 @@ async function start() {
     }
 
     if (st.step === 'get_datetime') {
-      const dt = new Date(text.replace(' ', 'T'));
-      if (Number.isNaN(dt.getTime())) {
-        await sock.sendMessage(jid, { text: 'Formato inválido. Tente: 2025-08-26 15:30' });
-        return;
-      }
-      st.data.start_at = dt.toISOString();
-      st.data.notes = st.data.notes || '';
+        const dt = new Date(text.replace(' ', 'T'));
+        if (Number.isNaN(dt.getTime())) {
+            await sock.sendMessage(jid, { text: 'Formato inválido. Tente: 2025-08-26 15:30' });
+            return;
+        }
+        st.data.start_at = dt.toISOString();
 
-      // Envia pro teu FastAPI
-      try {
-        const res = await axios.post(`${API_BASE_URL}/appointment/`, st.data);
-        const ap = res.data;
-        await sock.sendMessage(jid, {
-          text:
-            `✅ Agendamento criado!\n` +
-            `Cliente: ${ap.customer_name}\n` +
-            `Serviço: ${ap.service}\n` +
-            `Quando: ${ap.start_at}\n` +
-            `Telefone: ${ap.phone}`,
-        });
-      } catch (err) {
-        const apiErr = err.response?.data?.detail || err.message;
-        await sock.sendMessage(jid, { text: '❌ Erro ao salvar: ' + apiErr });
-        console.error('Erro API:', err.response?.data || err);
-      }
+        try {
+            // Checa no backend se já existe agendamento nesse horário
+            const res = await axios.get(`${API_BASE_URL}/appointment/`);
+            const appointments = res.data;
+            const isBusy = appointments.some(ap => ap.start_at === st.data.start_at);
 
-      sessions.delete(jid);
-      await sock.sendMessage(jid, { text: 'Posso ajudar com algo mais? Digite 1 para novo agendamento.' });
-      return;
+            if (isBusy) {
+                await sock.sendMessage(jid, { text: '❌ Horário indisponível. Por favor escolha outro.' });
+                return;
+            } else {
+                st.step = 'confirm';
+                await sock.sendMessage(jid, {
+                    text: `✅ Horário disponível!\nDeseja confirmar o agendamento em ${text}? (sim/não)`
+                });
+                sessions.set(jid, st);
+                return;
+            }
+        } catch (err) {
+            await sock.sendMessage(jid, { text: '❌ Erro ao consultar disponibilidade. Tente novamente.' });
+            console.error(err);
+            return;
+        }
     }
-  });
+
+    // CONFIRMAÇÃO
+    if (st.step === 'confirm') {
+        if (/^sim$/i.test(text)) {
+            try {
+                const res = await axios.post(`${API_BASE_URL}/appointment/`, st.data);
+                const ap = res.data;
+                await sock.sendMessage(jid, {
+                    text:
+                        `✅ Agendamento confirmado!\n` +
+                        `Cliente: ${ap.customer_name}\n` +
+                        `Serviço: ${ap.service}\n` +
+                        `Quando: ${ap.start_at}\n` +
+                        `Telefone: ${ap.phone}`
+                });
+            } catch (err) {
+                const apiErr = err.response?.data?.detail || err.message;
+                await sock.sendMessage(jid, { text: '❌ Erro ao salvar: ' + apiErr });
+                console.error('Erro API:', err.response?.data || err);
+            }
+        } else {
+            await sock.sendMessage(jid, { text: 'Agendamento cancelado. Digite 1 para tentar novamente.' });
+        }
+
+        // Limpa sessão e volta ao menu
+        sessions.delete(jid);
+        await sock.sendMessage(jid, { text: 'Posso ajudar com algo mais? Digite 1 para novo agendamento.' });
+        return;
+    }
+});
 
   return sock;
 }
