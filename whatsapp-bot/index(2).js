@@ -14,6 +14,9 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 // memória simples de sessão de conversa (por JID)
 const sessions = new Map();
 
+let isAuthenticated = false; // true quando o bot estiver conectado
+let currentQr = null;        // QR gerado enquanto não autenticado
+
 function textFromMessage(msg) {
   const m = msg.message;
   if (!m) return '';
@@ -41,20 +44,31 @@ async function start() {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
+      currentQr = qr;
+      isAuthenticated = false;
       qrcode.generate(qr, { small: true });
       console.log('📲 Escaneie o QR acima com seu WhatsApp');
     }
 
     if (connection === 'close') {
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      console.log('Conexão fechada. Reconnect?', shouldReconnect, statusCode);
-      if (shouldReconnect) start();
-      else console.log('Sessão deslogada. Apague a pasta ./auth para relogar.');
-    } else if (connection === 'open') {
-      console.log('✅ Conectado ao WhatsApp');
-    }
-  });
+    const statusCode = lastDisconnect?.error?.output?.statusCode;
+    const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+    console.log('Conexão fechada. Reconnect?', shouldReconnect, statusCode);
+
+    isAuthenticated = false;
+    currentQr = null;
+
+    if (shouldReconnect) start();
+    else console.log('Sessão deslogada. Apague a pasta ./auth para relogar.');
+  }
+
+  // Conexão aberta
+  else if (connection === 'open') {
+    console.log('✅ Conectado ao WhatsApp');
+    isAuthenticated = true;
+    currentQr = null;
+  }
+});
 
   // Salva credenciais ao atualizar
   sock.ev.on('creds.update', saveCreds);
