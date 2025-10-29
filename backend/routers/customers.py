@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,Query
 from sqlalchemy.orm import Session
+from datetime import date, timedelta
 from ..database import SessionLocal
-from ..models.customers import Customer
+from ..models.customers import Customer, CustomerHistory
 from ..schemas.customers import CustomerCreate, CustomerOut
 
 
@@ -63,3 +64,30 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     db.delete(obj)
     db.commit()
     return {"message": "Deleted successfully"}
+
+@router.get("/{customer_id}/history")
+def get_customer_history(
+    customer_id: int,
+    start_date: date = Query(None),
+    end_date: date = Query(None),
+    limit: int = Query(20),
+    offset: int = Query(0),
+    db: Session = Depends(get_db)
+):
+    if not end_date:
+        end_date = date.today()
+    if not start_date:
+        start_date = end_date - timedelta(days=60)
+
+    history = (
+        db.query(CustomerHistory)
+        .filter(
+            CustomerHistory.customer_id == customer_id,
+            CustomerHistory.date.between(start_date, end_date)
+        )
+        .order_by(CustomerHistory.date.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
+    return history

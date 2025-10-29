@@ -14,8 +14,8 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 // memória simples de sessão de conversa (por JID)
 const sessions = new Map();
 
-let isAuthenticated = false; // true quando o bot estiver conectado
-let currentQr = null;        // QR gerado enquanto não autenticado
+export let isAuthenticated = false; // true quando o bot estiver conectado
+export let currentQr = null;        // QR gerado enquanto não autenticado
 
 function textFromMessage(msg) {
   const m = msg.message;

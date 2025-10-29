@@ -3,6 +3,7 @@ from .database import Base,engine
 from .routers import appointment
 from .routers import customers
 from .routers import finance
+from .routers import chatbot
 
 
 Base.metadata.create_all(bind= engine)
@@ -24,3 +25,6 @@ async def health():
 @app.get("/appointment")
 def list_appointments():
     return {"appointments": []}
+
+
+app.include_router(chatbot.router, prefix="/bot")
