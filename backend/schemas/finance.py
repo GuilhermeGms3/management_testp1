@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
-from sqlalchemy import db
+from pydantic import BaseModel
+from datetime import datetime
 
 class FinanceCreate(BaseModel):
     description: str
