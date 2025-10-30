@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer,String,DateTime,Float
+from sqlalchemy import Column,Integer,String,DateTime,Float,Boolean,Date
 import datetime
 from ..database import Base
 
@@ -10,3 +10,35 @@ class Finance(Base):
     amount = Column(Float)
     type = Column(String)  # "income" ou "expense"
     date = Column(DateTime, default=datetime.datetime.utcnow)
+
+class FinanceTransaction(Base):
+    __tablename__ = "finance_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    type = Column(String, nullable=False)  # "income" | "expense"
+    fixed = Column(Boolean, default=False)  # se é despesa fixa
+    category = Column(String, nullable=True)  # "aluguel", "serviço", etc
+    date = Column(Date, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class FinanceSchedule(Base):
+    __tablename__ = "finance_schedule"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    type = Column(String, nullable=False)  # "income" ou "expense"
+    date = Column(Date, nullable=False)  # data do evento
+    status = Column(String, default="pending")  # "pending", "done", "cancelled"
+
+class FinanceSchedule(Base):
+    __tablename__ = "finance_schedule"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    type = Column(String, nullable=False)  # "income" ou "expense"
+    date = Column(Date, nullable=False)  # data do evento
+    status = Column(String, default="pending")  # "pending", "done", "cancelled"
