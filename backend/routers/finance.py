@@ -26,8 +26,28 @@ def create_transaction(fin: FinanceCreate, db: Session = Depends(get_db)):
 
 # LIST ALL
 @router.get("/", response_model=list[FinanceOut])
-def list_transactions(db: Session = Depends(get_db)):
-    return db.query(Finance).all()
+def list_transactions(
+    mes: int | None = None,
+    ano: int | None = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Finance)
+
+    if mes and ano:
+        # Importar datetime no topo do arquivo
+        from datetime import datetime
+
+        # início do mês atual
+        start_date = datetime(ano, mes, 1)
+        # início do próximo mês (pra delimitar o intervalo)
+        if mes == 12:
+            end_date = datetime(ano + 1, 1, 1)
+        else:
+            end_date = datetime(ano, mes + 1, 1)
+
+        query = query.filter(Finance.date >= start_date, Finance.date < end_date)
+
+    return query.all()
 
 # GET BY ID
 @router.get("/{transaction_id}", response_model=FinanceOut)
@@ -61,3 +81,4 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
     db.delete(obj)
     db.commit()
     return {"message": "Deleted successfully"}
+

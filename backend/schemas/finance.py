@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy import db
 
 class FinanceCreate(BaseModel):
     description: str
@@ -12,3 +13,5 @@ class FinanceOut(FinanceCreate):
 
     class Config:
         from_attributes = True  # permite converter SQLAlchemy → Pydantic
+
+
