@@ -1,18 +1,72 @@
 from pydantic import BaseModel
-from datetime import datetime
-from pydantic import BaseModel
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 
-class FinanceCreate(BaseModel):
+# -------------------
+# TRANSACTIONS
+# -------------------
+class FinanceTransactionBase(BaseModel):
     description: str
     amount: float
-    type: str  # "income" ou "expense"
-    date: datetime | None = None  # opcional, se não informado usa datetime.utcnow()
+    type: str
+    category: Optional[str] = None
+    client: Optional[str] = None
+    employee: Optional[str] = None
+    date: date
+    fixed: Optional[bool] = False
 
-class FinanceOut(FinanceCreate):
+
+class FinanceTransactionCreate(FinanceTransactionBase):
+    pass
+
+
+class FinanceTransactionOut(FinanceTransactionBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+# -------------------
+# EXPENSES
+# -------------------
+class FinanceExpenseBase(BaseModel):
+    description: str
+    category: str
+    value: float
+    due_date: date
+    paid: Optional[bool] = False
+
+
+class FinanceExpenseCreate(FinanceExpenseBase):
+    pass
+
+
+class FinanceExpenseOut(FinanceExpenseBase):
     id: int
 
     class Config:
-        from_attributes = True  # permite converter SQLAlchemy → Pydantic
+        orm_mode = True
 
 
+# -------------------
+# SCHEDULES
+# -------------------
+class FinanceScheduleBase(BaseModel):
+    title: str
+    amount: float
+    type: str
+    date: date
+    status: Optional[str] = "pending"
+
+
+class FinanceScheduleCreate(FinanceScheduleBase):
+    pass
+
+
+class FinanceScheduleOut(FinanceScheduleBase):
+    id: int
+
+    class Config:
+        orm_mode = True
