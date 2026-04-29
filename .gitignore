@@ -1,2 +1,9 @@
 
 node_modules/
+whatsapp-bot/auth/
+release/
+release.rar
+.vscode/settings.json
+dist/
+build/
+*.log
